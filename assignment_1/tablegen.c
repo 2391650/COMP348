@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "generate.h"
 
 void startPage();
 void generateTable();
@@ -78,4 +79,5 @@ void generateTable() {
     printf("\n");
     printf(" Row count: %d\n", rowCount);
     printf(" File name: %s\n", fileName);
+    generate(rowCount, fileName);
 }
