@@ -46,13 +46,12 @@ void generateTable() {
     printf("3. Last name        7. SIN\n");
     printf("4. Country          8. Password\n");
     printf("\nEnter column list (comma-separated, no spaces): ");
-    // ----------
     
-    char columns[64]; 
+    char columns[16]; 
     int rowCount;
     char fileName[64];
     
-    scanf("%63s", columns);
+    scanf("%15s", columns);
     printf("Enter row count (1 < n < 1M): ");
     scanf("%d", &rowCount);
     printf("Enter output file name (no suffix): ");
