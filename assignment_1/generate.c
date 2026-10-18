@@ -10,21 +10,28 @@ void generate(int rowCount, char fileName[],
     FILE *fNamesFile;
     FILE *lNamesFile;
     FILE *countriesFile;
+    FILE *emailSuffixesFile;
     
     char fullFileName[68];
     char firstNames[1000][64];
     char lastNames[1000][64];
     char countries[195][64];
+    int phoneIndexes[] = {
+        398, 270, 925, 867, 209,
+        429, 908, 997, 444, 219
+    };
+    char emailSuffixes[100][64];
     char line[64];
 
     int fNameCount = 0;
     int lNameCount = 0;
     int countryCount = 0;
+    int emailSuffixCount = 0;
 
     // Check that the selected columns are implemented
     for (int i = 0; i < numCols; i++) {
-        if (cols[i] != 1 && cols[i] != 2 && cols[i] != 3 && cols[i] != 4) {
-            printf("Only columns 1, 2, 3, and 4 are implemented for now.\n");
+        if (cols[i] != 1 && cols[i] != 2 && cols[i] != 3 && cols[i] != 4 && cols[i] != 5 && cols[i] != 6 && cols[i]) {
+            printf("Only columns 1, 2, 3, 4, 5 and 6 are implemented for now.\n");
             return;
         }
     }
@@ -147,6 +154,39 @@ void generate(int rowCount, char fileName[],
                 return;
             }
         }
+
+        if (cols[i] == 6) {
+
+            FILE *suffixFile = fopen("email_suffixes.txt", "r");
+
+            if (suffixFile == NULL) {
+                printf("Error opening email_suffixes.txt\n");
+                fclose(file_ptr);
+                return;
+            }
+
+            while (emailSuffixCount < 100 &&
+                fgets(line, sizeof(line), suffixFile) != NULL) {
+
+                line[strcspn(line, "\r\n")] = '\0';
+
+                if (line[0] != '\0') {
+                    snprintf(emailSuffixes[emailSuffixCount],
+                            sizeof(emailSuffixes[emailSuffixCount]),
+                            "%s", line);
+
+                    emailSuffixCount++;
+                }
+            }
+
+            fclose(suffixFile);
+
+            if (emailSuffixCount == 0) {
+                printf("No email suffixes found in email_suffixes.txt\n");
+                fclose(file_ptr);
+                return;
+            }
+        }
     }
 
     // Write column headers in the selected order
@@ -163,6 +203,10 @@ void generate(int rowCount, char fileName[],
             fprintf(file_ptr, "Last Name");
         } else if (cols[i] == 4) {
             fprintf(file_ptr, "Country");
+        } else if (cols[i] == 5) {
+            fprintf(file_ptr, "Phone Number");
+        } else if (cols[i] == 6) {
+            fprintf(file_ptr, "Email Address");
         }
     }
 
@@ -170,6 +214,16 @@ void generate(int rowCount, char fileName[],
 
     // Generate each row
     for (int row = 1; row <= rowCount; row++) {
+        int firstNameIndex = 0;
+        int lastNameIndex = 0;
+
+        if (fNameCount > 0) {
+            firstNameIndex = rand() % fNameCount;
+        }
+
+        if (lNameCount > 0) {
+            lastNameIndex = rand() % lNameCount;
+        }
 
         for (int col = 0; col < numCols; col++) {
 
@@ -180,20 +234,33 @@ void generate(int rowCount, char fileName[],
             if (cols[col] == 1) {
                 fprintf(file_ptr, "%d", row);
             } else if (cols[col] == 2) {
-                int randomIndex = rand() % fNameCount;
+                // int randomIndex = rand() % fNameCount;
 
                 fprintf(file_ptr, "%s",
-                        firstNames[randomIndex]);
+                        firstNames[firstNameIndex]);
             } else if (cols[col] == 3) {
-                int randomIndex = rand() % lNameCount;
+                // int randomIndex = rand() % lNameCount;
 
                 fprintf(file_ptr, "%s",
-                        lastNames[randomIndex]);
+                        lastNames[lastNameIndex]);
             } else if (cols[col] == 4) {
                 int randomIndex = rand() % countryCount;
 
                 fprintf(file_ptr, "%s",
                         countries[randomIndex]);
+            } else if (cols[col] == 5) {
+                int randomIndex = rand() % 10;
+                int phoneLine = rand() % 10000;
+
+                fprintf(file_ptr, "%03d%04d",
+                        phoneIndexes[randomIndex], phoneLine);
+            } else if (cols[col] == 6) {
+                int randomSuffix = rand() % emailSuffixCount;
+
+                fprintf(file_ptr, "%c%s@%s",
+                        firstNames[firstNameIndex][0],
+                        lastNames[lastNameIndex],
+                        emailSuffixes[randomSuffix]);
             }
         }
 
