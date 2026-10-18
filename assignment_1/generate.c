@@ -8,17 +8,23 @@ void generate(int rowCount, char fileName[],
 
     FILE *file_ptr;
     FILE *fNamesFile;
-
+    FILE *lNamesFile;
+    FILE *countriesFile;
+    
     char fullFileName[68];
     char firstNames[1000][64];
+    char lastNames[1000][64];
+    char countries[195][64];
     char line[64];
 
-    int nameCount = 0;
+    int fNameCount = 0;
+    int lNameCount = 0;
+    int countryCount = 0;
 
     // Check that the selected columns are implemented
     for (int i = 0; i < numCols; i++) {
-        if (cols[i] != 1 && cols[i] != 2) {
-            printf("Only columns 1 and 2 are implemented for now.\n");
+        if (cols[i] != 1 && cols[i] != 2 && cols[i] != 3 && cols[i] != 4) {
+            printf("Only columns 1, 2, 3, and 4 are implemented for now.\n");
             return;
         }
     }
@@ -35,7 +41,7 @@ void generate(int rowCount, char fileName[],
         return;
     }
 
-    // Load first names only if column 2 was selected
+    // Load from files
     for (int i = 0; i < numCols; i++) {
         if (cols[i] == 2) {
 
@@ -47,7 +53,7 @@ void generate(int rowCount, char fileName[],
                 return;
             }
 
-            while (nameCount < 1000 &&
+            while (fNameCount < 1000 &&
                    fgets(line, sizeof(line), fNamesFile) != NULL) {
 
                 // Remove newline characters
@@ -55,23 +61,91 @@ void generate(int rowCount, char fileName[],
 
                 // Skip empty lines
                 if (line[0] != '\0') {
-                    snprintf(firstNames[nameCount],
-                             sizeof(firstNames[nameCount]),
+                    snprintf(firstNames[fNameCount],
+                             sizeof(firstNames[fNameCount]),
                              "%s", line);
 
-                    nameCount++;
+                    fNameCount++;
                 }
             }
 
             fclose(fNamesFile);
 
-            if (nameCount == 0) {
+            if (fNameCount == 0) {
                 printf("No names found in first_names.txt\n");
                 fclose(file_ptr);
                 return;
             }
+        }
 
-            break;
+        if (cols[i] == 3) {
+
+            lNamesFile = fopen("last_names.txt", "r");
+
+            if (lNamesFile == NULL) {
+                printf("Error opening last_names.txt\n");
+                fclose(file_ptr);
+                return;
+            }
+
+            while (lNameCount < 1000 &&
+                   fgets(line, sizeof(line), lNamesFile) != NULL) {
+
+                // Remove newline characters
+                line[strcspn(line, "\r\n")] = '\0';
+
+                // Skip empty lines
+                if (line[0] != '\0') {
+                    snprintf(lastNames[lNameCount],
+                             sizeof(lastNames[lNameCount]),
+                             "%s", line);
+
+                    lNameCount++;
+                }
+            }
+
+            fclose(lNamesFile);
+
+            if (lNameCount == 0) {
+                printf("No names found in last_names.txt\n");
+                fclose(file_ptr);
+                return;
+            }
+        }
+
+        if (cols[i] == 4) {
+            
+            countriesFile = fopen("countries.txt", "r");
+
+            if (countriesFile == NULL) {
+                printf("Error opening countries.txt\n");
+                fclose(file_ptr);
+                return;
+            }
+
+            while (countryCount < 195 &&
+                   fgets(line, sizeof(line), countriesFile) != NULL) {
+
+                // Remove newline characters
+                line[strcspn(line, "\r\n")] = '\0';
+
+                // Skip empty lines
+                if (line[0] != '\0') {
+                    snprintf(countries[countryCount],
+                             sizeof(countries[countryCount]),
+                             "%s", line);
+
+                    countryCount++;
+                }
+            }
+
+            fclose(countriesFile);
+
+            if (countryCount == 0) {
+                printf("No countries found in countries.txt\n");
+                fclose(file_ptr);
+                return;
+            }
         }
     }
 
@@ -85,6 +159,10 @@ void generate(int rowCount, char fileName[],
             fprintf(file_ptr, "User ID");
         } else if (cols[i] == 2) {
             fprintf(file_ptr, "First Name");
+        } else if (cols[i] == 3) {
+            fprintf(file_ptr, "Last Name");
+        } else if (cols[i] == 4) {
+            fprintf(file_ptr, "Country");
         }
     }
 
@@ -102,10 +180,20 @@ void generate(int rowCount, char fileName[],
             if (cols[col] == 1) {
                 fprintf(file_ptr, "%d", row);
             } else if (cols[col] == 2) {
-                int randomIndex = rand() % nameCount;
+                int randomIndex = rand() % fNameCount;
 
                 fprintf(file_ptr, "%s",
                         firstNames[randomIndex]);
+            } else if (cols[col] == 3) {
+                int randomIndex = rand() % lNameCount;
+
+                fprintf(file_ptr, "%s",
+                        lastNames[randomIndex]);
+            } else if (cols[col] == 4) {
+                int randomIndex = rand() % countryCount;
+
+                fprintf(file_ptr, "%s",
+                        countries[randomIndex]);
             }
         }
 
