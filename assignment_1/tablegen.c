@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "generate.h"
 
 void startPage();
-void generateTable();
+void configureTable();
 
 int main() {
+    srand((unsigned int)time(NULL)); // Seed the random number generator
 
     int choice;
 
@@ -17,7 +19,7 @@ int main() {
         scanf("%d", &choice);
         
         if (choice == 1) {
-            generateTable();
+            configureTable();
         } else if (choice == 2) {
             printf("Goodbye and thanks for using TableGen\n");
             break;
@@ -36,7 +38,7 @@ void startPage() {
     printf("\nSelection: ");
 }
 
-void generateTable() {
+void configureTable() {
     // system("clear"); // ill use it when i get docker installed
 
     printf("\nColumn Options\n");
@@ -51,7 +53,7 @@ void generateTable() {
     int rowCount;
     char fileName[64];
     
-    scanf("%15s", columns);
+    scanf("%15s", columns); // column string input
     printf("Enter row count (1 < n < 1M): ");
     scanf("%d", &rowCount);
     printf("Enter output file name (no suffix): ");
@@ -61,6 +63,7 @@ void generateTable() {
     int cols[8];
     int numCols = 0;
 
+    // from column string to array of integers
     char *token = strtok(columns, ",");
     while (token != NULL) {
         cols[numCols++] = atoi(token);   // atoi: a(scii) to i(nt) 
@@ -78,5 +81,5 @@ void generateTable() {
     printf("\n");
     printf(" Row count: %d\n", rowCount);
     printf(" File name: %s\n", fileName);
-    generate(rowCount, fileName);
+    generate(rowCount, fileName, cols, numCols);
 }
