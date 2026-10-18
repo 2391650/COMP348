@@ -16,11 +16,13 @@ void generate(int rowCount, char fileName[],
     char firstNames[1000][64];
     char lastNames[1000][64];
     char countries[195][64];
-    int phoneIndexes[] = {
-        398, 270, 925, 867, 209,
-        429, 908, 997, 444, 219
-    };
+    int phoneIndexes[] = {398, 270, 925, 867, 209, 429, 908, 997, 444, 219};
     char emailSuffixes[100][64];
+    char allowedChars[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789"
+    "!\"#$%&'()*+-./:;<=>?@[\\]^_`{|}~";
     char line[64];
 
     int fNameCount = 0;
@@ -30,8 +32,8 @@ void generate(int rowCount, char fileName[],
 
     // Check that the selected columns are implemented
     for (int i = 0; i < numCols; i++) {
-        if (cols[i] != 1 && cols[i] != 2 && cols[i] != 3 && cols[i] != 4 && cols[i] != 5 && cols[i] != 6 && cols[i]) {
-            printf("Only columns 1, 2, 3, 4, 5 and 6 are implemented for now.\n");
+        if (cols[i] != 1 && cols[i] != 2 && cols[i] != 3 && cols[i] != 4 && cols[i] != 5 && cols[i] != 6 && cols[i] != 7 && cols[i] != 8) {
+            printf("Only columns 1, 2, 3, 4, 5, 6, 7 and 8 are implemented for now.\n");
             return;
         }
     }
@@ -207,6 +209,10 @@ void generate(int rowCount, char fileName[],
             fprintf(file_ptr, "Phone Number");
         } else if (cols[i] == 6) {
             fprintf(file_ptr, "Email Address");
+        } else if (cols[i] == 7) {
+            fprintf(file_ptr, "SIN");
+        } else if (cols[i] == 8) {
+            fprintf(file_ptr, "Password");
         }
     }
 
@@ -234,12 +240,10 @@ void generate(int rowCount, char fileName[],
             if (cols[col] == 1) {
                 fprintf(file_ptr, "%d", row);
             } else if (cols[col] == 2) {
-                // int randomIndex = rand() % fNameCount;
 
                 fprintf(file_ptr, "%s",
                         firstNames[firstNameIndex]);
             } else if (cols[col] == 3) {
-                // int randomIndex = rand() % lNameCount;
 
                 fprintf(file_ptr, "%s",
                         lastNames[lastNameIndex]);
@@ -261,6 +265,25 @@ void generate(int rowCount, char fileName[],
                         firstNames[firstNameIndex][0],
                         lastNames[lastNameIndex],
                         emailSuffixes[randomSuffix]);
+            } else if (cols[col] == 7) {
+                int sinNumber = 100000000 + 
+                                (int)((long long)rand() * rand() % 900000000);
+
+                fprintf(file_ptr, "%09d", sinNumber);
+            } else if (cols[col] == 8) {
+                char password[17];
+
+                int passwordLength = 6 + rand() % 11;
+
+                for (int i = 0; i < passwordLength; i++) {
+                    int randomIndex = rand() % (sizeof(allowedChars) - 1);
+
+                    password[i] = allowedChars[randomIndex];
+                }
+
+                password[passwordLength] = '\0';
+
+                fprintf(file_ptr, "%s", password);
             }
         }
 
@@ -269,6 +292,5 @@ void generate(int rowCount, char fileName[],
 
     fclose(file_ptr);
 
-    printf("CSV file generated successfully: %s\n",
-           fullFileName);
+    printf("CSV file generated successfully: %s\n", fullFileName);
 }
