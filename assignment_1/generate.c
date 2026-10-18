@@ -22,7 +22,7 @@ void generate(int rowCount, char fileName[],
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
     "0123456789"
-    "!\"#$%&'()*+-./:;<=>?@[\\]^_`{|}~";
+    "!\"#$%&'()*+-./:;<=>?@[\\]^_`{|}~";    
     char line[64];
 
     int fNameCount = 0;
@@ -159,16 +159,16 @@ void generate(int rowCount, char fileName[],
 
         if (cols[i] == 6) {
 
-            FILE *suffixFile = fopen("email_suffixes.txt", "r");
+            emailSuffixesFile = fopen("email_suffixes.txt", "r");
 
-            if (suffixFile == NULL) {
+            if (emailSuffixesFile == NULL) {
                 printf("Error opening email_suffixes.txt\n");
                 fclose(file_ptr);
                 return;
             }
 
             while (emailSuffixCount < 100 &&
-                fgets(line, sizeof(line), suffixFile) != NULL) {
+                fgets(line, sizeof(line), emailSuffixesFile) != NULL) {
 
                 line[strcspn(line, "\r\n")] = '\0';
 
@@ -181,7 +181,7 @@ void generate(int rowCount, char fileName[],
                 }
             }
 
-            fclose(suffixFile);
+            fclose(emailSuffixesFile);
 
             if (emailSuffixCount == 0) {
                 printf("No email suffixes found in email_suffixes.txt\n");
@@ -266,10 +266,17 @@ void generate(int rowCount, char fileName[],
                         lastNames[lastNameIndex],
                         emailSuffixes[randomSuffix]);
             } else if (cols[col] == 7) {
-                int sinNumber = 100000000 + 
-                                (int)((long long)rand() * rand() % 900000000);
+                char sinNumber[10];
 
-                fprintf(file_ptr, "%09d", sinNumber);
+                sinNumber[0] = '1' + rand() % 9;
+
+                for (int i = 1; i < 9; i++) {
+                    sinNumber[i] = '0' + rand() % 10;
+                }
+
+                sinNumber[9] = '\0';
+
+                fprintf(file_ptr, "%s", sinNumber);
             } else if (cols[col] == 8) {
                 char password[17];
 
