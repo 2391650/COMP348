@@ -13,7 +13,8 @@ int main() {
     int choice;
 
     while (1) {
-        // system("clear"); // use with docker
+        system("clear");
+
 
         startPage();
         
@@ -40,7 +41,7 @@ void startPage() {
 }
 
 void configureTable() {
-    // system("clear"); // use with docker
+    system("clear");
 
     printf("\nColumn Options\n");
     printf("--------------\n");
