@@ -57,41 +57,28 @@ void generate(int rowCount, char fileName[],
         if (cols[i] == 2 && fNameCount == 0) {
             fNameCount = loadStrings(
                 "first_names.txt", firstNames, 1000);
-
-            if (fNameCount <= 0) {
-                printf("Could not load first names.\n");
-                return;
-            }
         }
 
         if (cols[i] == 3 && lNameCount == 0) {
             lNameCount = loadStrings(
                 "last_names.txt", lastNames, 1000);
-
-            if (lNameCount <= 0) {
-                printf("Could not load last names.\n");
-                return;
-            }
         }
 
         if (cols[i] == 4 && countryCount == 0) {
             countryCount = loadStrings(
                 "countries.txt", countries, 195);
-
-            if (countryCount <= 0) {
-                printf("Could not load countries.\n");
-                return;
-            }
         }
 
         if (cols[i] == 6 && emailSuffixCount == 0) {
             emailSuffixCount = loadStrings(
                 "email_suffixes.txt", emailSuffixes, 100);
 
-            if (emailSuffixCount <= 0) {
-                printf("Could not load email suffixes.\n");
-                return;
-            }
+            // otherwise email would be empty
+            fNameCount = loadStrings(
+                "first_names.txt", firstNames, 1000);
+            
+            lNameCount = loadStrings(
+                "last_names.txt", lastNames, 1000);
         }
     }
 
