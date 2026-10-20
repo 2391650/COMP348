@@ -5,84 +5,320 @@
 #include "io.h"
 #include "sort.h"
 
-void generate(int rowCount, char fileName[],
-              int cols[], int numCols) {
+/* Sizes of the input files (from the assignment description). */
+#define MAX_FIRST_NAMES    1000
+#define MAX_LAST_NAMES     1000
+#define MAX_COUNTRIES      195
+#define MAX_EMAIL_SUFFIXES 100
 
-    FILE *file_ptr = NULL;
+/* Buffer sizes. */
+#define CELL_SIZE 256     /* one value, e.g. a single name or password */
+#define ROW_SIZE  2048    /* one complete CSV line                      */
 
-    char fullFileName[68];
-    char firstNames[1000][64];
-    char lastNames[1000][64];
-    char countries[195][64];
-    char emailSuffixes[100][64];
+#define NUM_PHONE_INDEXES 10
+#define MIN_PASSWORD_LEN  6
+#define MAX_PASSWORD_LEN  16
 
-    int phoneIndexes[] = {
-        398, 270, 925, 867, 209,
-        429, 908, 997, 444, 219
-    };
+/* Everything we load from the text files, kept together in one struct. */
+typedef struct {
+    char firstNames[MAX_FIRST_NAMES][STR_LEN];
+    char lastNames[MAX_LAST_NAMES][STR_LEN];
+    char countries[MAX_COUNTRIES][STR_LEN];
+    char emailSuffixes[MAX_EMAIL_SUFFIXES][STR_LEN];
 
-    char allowedChars[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789"
-        "!\"#$%&'()*+-./:;<=>?@[\\]^_`{|}~";
+    int fNameCount;
+    int lNameCount;
+    int countryCount;
+    int emailSuffixCount;
+} GenData;
 
-    int fNameCount = 0;
-    int lNameCount = 0;
-    int countryCount = 0;
-    int emailSuffixCount = 0;
+static const int phoneIndexes[NUM_PHONE_INDEXES] = {
+    398, 270, 925, 867, 209,
+    429, 908, 997, 444, 219
+};
 
-    GeneratedRow *rows = NULL;
+/* All printable non-space characters EXCEPT the comma. */
+static const char allowedChars[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789"
+    "!\"#$%&'()*+-./:;<=>?@[\\]^_`{|}~";
 
-    // Check the selected columns.
+
+/* ------------------------------------------------------------------ */
+/* Generators for individual values                                    */
+/* ------------------------------------------------------------------ */
+
+/* Writes something like "908-1937" into out. */
+static void generatePhone(char *out, size_t size) {
+    int index = phoneIndexes[rand() % NUM_PHONE_INDEXES];
+    int line = rand() % 10000;
+
+    snprintf(out, size, "%03d-%04d", index, line);
+}
+
+/* Writes a 9-digit number into out (out must hold at least 10 chars). */
+static void generateSIN(char *out) {
+    out[0] = '1' + rand() % 9;          /* first digit is never 0 */
+
+    for (int i = 1; i < 9; i++) {
+        out[i] = '0' + rand() % 10;
+    }
+
+    out[9] = '\0';
+}
+
+/* Writes a 6-16 character password into out (out must hold 17 chars). */
+static void generatePassword(char *out) {
+    int length = MIN_PASSWORD_LEN +
+                 rand() % (MAX_PASSWORD_LEN - MIN_PASSWORD_LEN + 1);
+
+    for (int i = 0; i < length; i++) {
+        out[i] = allowedChars[rand() % (sizeof(allowedChars) - 1)];
+    }
+
+    out[length] = '\0';
+}
+
+/* Produces the text for ONE cell of ONE row. */
+static void generateCell(int column, int rowNumber, const GenData *data,
+                         int firstIdx, int lastIdx,
+                         char *cell, size_t size) {
+    cell[0] = '\0';
+
+    switch (column) {
+    case COL_USER_ID:
+        snprintf(cell, size, "%d", rowNumber);
+        break;
+
+    case COL_FIRST_NAME:
+        snprintf(cell, size, "%s", data->firstNames[firstIdx]);
+        break;
+
+    case COL_LAST_NAME:
+        snprintf(cell, size, "%s", data->lastNames[lastIdx]);
+        break;
+
+    case COL_COUNTRY:
+        snprintf(cell, size, "%s",
+                 data->countries[rand() % data->countryCount]);
+        break;
+
+    case COL_PHONE:
+        generatePhone(cell, size);
+        break;
+
+    case COL_EMAIL:
+        snprintf(cell, size, "%c%s@%s",
+                 data->firstNames[firstIdx][0],
+                 data->lastNames[lastIdx],
+                 data->emailSuffixes[rand() % data->emailSuffixCount]);
+        break;
+
+    case COL_SIN:
+        generateSIN(cell);
+        break;
+
+    case COL_PASSWORD:
+        generatePassword(cell);
+        break;
+    }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Helpers for building rows                                           */
+/* ------------------------------------------------------------------ */
+
+/* Returns a malloc'd copy of text (caller must free), or NULL. */
+static char *copyString(const char *text) {
+    char *copy = malloc(strlen(text) + 1);
+
+    if (copy != NULL) {
+        strcpy(copy, text);
+    }
+
+    return copy;
+}
+
+/* Adds cell (preceded by a comma if addComma) to the end of rowBuffer.
+   Returns 0 on success, -1 if it would not fit. */
+static int appendCell(char *rowBuffer, size_t bufferSize,
+                      const char *cell, int addComma) {
+    size_t used = strlen(rowBuffer);
+    size_t needed = strlen(cell) + (addComma ? 1 : 0);
+
+    if (used + needed + 1 > bufferSize) {
+        return -1;
+    }
+
+    if (addComma) {
+        strcat(rowBuffer, ",");
+    }
+
+    strcat(rowBuffer, cell);
+    return 0;
+}
+
+/* Fills in one GeneratedRow: its sort key and its full CSV line.
+   Returns 0 on success, -1 on failure. */
+static int buildRow(GeneratedRow *row, int rowNumber,
+                    const int cols[], int numCols, const GenData *data) {
+    char rowBuffer[ROW_SIZE] = "";
+    char cell[CELL_SIZE];
+    int firstIdx = 0;
+    int lastIdx = 0;
+
+    /* Pick the name once per row so first name, last name and email agree. */
+    if (data->fNameCount > 0) {
+        firstIdx = rand() % data->fNameCount;
+    }
+
+    if (data->lNameCount > 0) {
+        lastIdx = rand() % data->lNameCount;
+    }
+
+    for (int col = 0; col < numCols; col++) {
+        generateCell(cols[col], rowNumber, data,
+                     firstIdx, lastIdx, cell, sizeof(cell));
+
+        /* The first selected column is the sort column. */
+        if (col == 0) {
+            row->sortKey = copyString(cell);
+
+            if (row->sortKey == NULL) {
+                return -1;
+            }
+        }
+
+        if (appendCell(rowBuffer, sizeof(rowBuffer), cell, col > 0) != 0) {
+            printf("Generated row is too long.\n");
+            return -1;
+        }
+    }
+
+    row->csvLine = copyString(rowBuffer);
+
+    return (row->csvLine == NULL) ? -1 : 0;
+}
+
+/* Frees every string, then the array itself. Safe on rows that were
+   never filled in, because calloc set their pointers to NULL. */
+static void freeRows(GeneratedRow *rows, int rowCount) {
+    for (int i = 0; i < rowCount; i++) {
+        free(rows[i].sortKey);
+        free(rows[i].csvLine);
+    }
+
+    free(rows);
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Setup helpers                                                       */
+/* ------------------------------------------------------------------ */
+
+/* Returns 1 if the request makes sense, 0 otherwise. */
+static int validateRequest(const int cols[], int numCols, int rowCount) {
     if (rowCount < 1 || numCols < 1) {
         printf("Invalid row count or column count.\n");
+        return 0;
+    }
+
+    for (int i = 0; i < numCols; i++) {
+        if (cols[i] < COL_USER_ID || cols[i] > COL_PASSWORD) {
+            printf("Only columns 1 through 8 are implemented.\n");
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/* Loads one text file into list unless it is already loaded.
+   Returns 0 on success, -1 on failure. */
+static int loadList(const char *fileName, char list[][STR_LEN],
+                    int maxEntries, int *count) {
+    if (*count > 0) {
+        return 0;
+    }
+
+    *count = loadStrings(fileName, list, maxEntries);
+
+    if (*count <= 0) {
+        printf("Could not load %s.\n", fileName);
+        return -1;
+    }
+
+    return 0;
+}
+
+/* Loads only the files that the selected columns need.
+   Returns 0 on success, -1 on failure. */
+static int loadRequiredFiles(const int cols[], int numCols, GenData *data) {
+    int needFirst = 0;
+    int needLast = 0;
+    int needCountry = 0;
+    int needSuffix = 0;
+
+    for (int i = 0; i < numCols; i++) {
+        switch (cols[i]) {
+        case COL_FIRST_NAME: needFirst = 1;                  break;
+        case COL_LAST_NAME:  needLast = 1;                   break;
+        case COL_COUNTRY:    needCountry = 1;                break;
+        case COL_EMAIL:      needFirst = needLast = needSuffix = 1; break;
+        }
+    }
+
+    if (needFirst &&
+        loadList("first_names.txt", data->firstNames,
+                 MAX_FIRST_NAMES, &data->fNameCount) != 0) {
+        return -1;
+    }
+
+    if (needLast &&
+        loadList("last_names.txt", data->lastNames,
+                 MAX_LAST_NAMES, &data->lNameCount) != 0) {
+        return -1;
+    }
+
+    if (needCountry &&
+        loadList("countries.txt", data->countries,
+                 MAX_COUNTRIES, &data->countryCount) != 0) {
+        return -1;
+    }
+
+    if (needSuffix &&
+        loadList("email_suffixes.txt", data->emailSuffixes,
+                 MAX_EMAIL_SUFFIXES, &data->emailSuffixCount) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* The one public function                                             */
+/* ------------------------------------------------------------------ */
+
+void generate(int rowCount, char fileName[], int cols[], int numCols) {
+    GenData data;
+    GeneratedRow *rows;
+    char fullFileName[68];
+
+    if (!validateRequest(cols, numCols, rowCount)) {
         return;
     }
 
-    for (int i = 0; i < numCols; i++) {
-        if (cols[i] < 1 || cols[i] > 8) {
-            printf("Only columns 1 through 8 are implemented.\n");
-            return;
-        }
+    memset(&data, 0, sizeof(data));
+    snprintf(fullFileName, sizeof(fullFileName), "%s.csv", fileName);
+
+    if (loadRequiredFiles(cols, numCols, &data) != 0) {
+        return;
     }
 
-    // Build the output filename.
-    snprintf(fullFileName, sizeof(fullFileName),
-             "%s.csv", fileName);
-
-    // Load only the files needed by the selected columns.
-    for (int i = 0; i < numCols; i++) {
-
-        if (cols[i] == 2 && fNameCount == 0) {
-            fNameCount = loadStrings(
-                "first_names.txt", firstNames, 1000);
-        }
-
-        if (cols[i] == 3 && lNameCount == 0) {
-            lNameCount = loadStrings(
-                "last_names.txt", lastNames, 1000);
-        }
-
-        if (cols[i] == 4 && countryCount == 0) {
-            countryCount = loadStrings(
-                "countries.txt", countries, 195);
-        }
-
-        if (cols[i] == 6 && emailSuffixCount == 0) {
-            emailSuffixCount = loadStrings(
-                "email_suffixes.txt", emailSuffixes, 100);
-
-            // otherwise email would be empty
-            fNameCount = loadStrings(
-                "first_names.txt", firstNames, 1000);
-            
-            lNameCount = loadStrings(
-                "last_names.txt", lastNames, 1000);
-        }
-    }
-
-    // Allocate memory for all generated rows.
+    /* calloc zeroes the memory, so every pointer starts out NULL. */
     rows = calloc((size_t)rowCount, sizeof(GeneratedRow));
 
     if (rows == NULL) {
@@ -90,224 +326,22 @@ void generate(int rowCount, char fileName[],
         return;
     }
 
-    // Generate each row in memory.
     for (int row = 1; row <= rowCount; row++) {
-
-        int firstNameIndex = 0;
-        int lastNameIndex = 0;
-
-        char rowBuffer[2048] = "";
-        char cell[256];
-        size_t used = 0;
-
-        if (fNameCount > 0) {
-            firstNameIndex = rand() % fNameCount;
-        }
-
-        if (lNameCount > 0) {
-            lastNameIndex = rand() % lNameCount;
-        }
-
-        for (int col = 0; col < numCols; col++) {
-
-            cell[0] = '\0';
-
-            if (cols[col] == 1) {
-                snprintf(cell, sizeof(cell), "%d", row);
-
-            } else if (cols[col] == 2) {
-                snprintf(cell, sizeof(cell), "%s",
-                         firstNames[firstNameIndex]);
-
-            } else if (cols[col] == 3) {
-                snprintf(cell, sizeof(cell), "%s",
-                         lastNames[lastNameIndex]);
-
-            } else if (cols[col] == 4) {
-                int randomIndex = rand() % countryCount;
-
-                snprintf(cell, sizeof(cell), "%s",
-                         countries[randomIndex]);
-
-            } else if (cols[col] == 5) {
-                int randomIndex = rand() % 10;
-                int phoneLine = rand() % 10000;
-
-                snprintf(cell, sizeof(cell), "%03d-%04d",
-                         phoneIndexes[randomIndex], phoneLine);
-
-            } else if (cols[col] == 6) {
-                int randomSuffix = rand() % emailSuffixCount;
-
-                snprintf(cell, sizeof(cell), "%c%s@%s",
-                         firstNames[firstNameIndex][0],
-                         lastNames[lastNameIndex],
-                         emailSuffixes[randomSuffix]);
-
-            } else if (cols[col] == 7) {
-                char sinNumber[10];
-
-                sinNumber[0] = '1' + rand() % 9;
-
-                for (int i = 1; i < 9; i++) {
-                    sinNumber[i] = '0' + rand() % 10;
-                }
-
-                sinNumber[9] = '\0';
-
-                snprintf(cell, sizeof(cell), "%s", sinNumber);
-
-            } else if (cols[col] == 8) {
-                char password[17];
-                int passwordLength = 6 + rand() % 11;
-
-                for (int i = 0; i < passwordLength; i++) {
-                    int randomIndex =
-                        rand() % (sizeof(allowedChars) - 1);
-
-                    password[i] = allowedChars[randomIndex];
-                }
-
-                password[passwordLength] = '\0';
-
-                snprintf(cell, sizeof(cell), "%s", password);
-            }
-
-            // Remember the first selected column's value.
-            if (col == 0) {
-                rows[row - 1].sortKey = malloc(strlen(cell) + 1);
-
-                if (rows[row - 1].sortKey == NULL) {
-                    printf("Could not allocate sorting key.\n");
-
-                    for (int i = 0; i < row; i++) {
-                        free(rows[i].sortKey);
-                        free(rows[i].csvLine);
-                    }
-
-                    free(rows);
-                    return;
-                }
-
-                strcpy(rows[row - 1].sortKey, cell);
-            }
-
-            // Add a comma between CSV values.
-            if (col > 0) {
-                if (used + 1 >= sizeof(rowBuffer)) {
-                    printf("Generated row is too long.\n");
-
-                    for (int i = 0; i < row; i++) {
-                        free(rows[i].sortKey);
-                        free(rows[i].csvLine);
-                    }
-
-                    free(rows);
-                    return;
-                }
-
-                rowBuffer[used++] = ',';
-                rowBuffer[used] = '\0';
-            }
-
-            // Add the current cell to the row.
-            size_t cellLength = strlen(cell);
-
-            if (used + cellLength >= sizeof(rowBuffer)) {
-                printf("Generated row is too long.\n");
-
-                for (int i = 0; i < row; i++) {
-                    free(rows[i].sortKey);
-                    free(rows[i].csvLine);
-                }
-
-                free(rows);
-                return;
-            }
-
-            memcpy(rowBuffer + used, cell, cellLength + 1);
-            used += cellLength;
-        }
-
-        // Save the complete row.
-        rows[row - 1].csvLine = malloc(strlen(rowBuffer) + 1);
-
-        if (rows[row - 1].csvLine == NULL) {
-            printf("Could not allocate memory for a row.\n");
-
-            for (int i = 0; i < row; i++) {
-                free(rows[i].sortKey);
-                free(rows[i].csvLine);
-            }
-
-            free(rows);
+        if (buildRow(&rows[row - 1], row, cols, numCols, &data) != 0) {
+            printf("Could not build row %d.\n", row);
+            freeRows(rows, rowCount);
             return;
         }
-
-        strcpy(rows[row - 1].csvLine, rowBuffer);
     }
 
-    // Sort by the first selected column.
     sortRows(rows, rowCount, cols[0]);
 
-    // Open the output CSV.
-    file_ptr = fopen(fullFileName, "w");
-
-    if (file_ptr == NULL) {
-        printf("Error opening output file!\n");
-
-        for (int i = 0; i < rowCount; i++) {
-            free(rows[i].sortKey);
-            free(rows[i].csvLine);
-        }
-
-        free(rows);
+    if (writeTable(fullFileName, cols, numCols, rows, rowCount) != 0) {
+        freeRows(rows, rowCount);
         return;
     }
 
-    // Write column headers in the selected order.
-    for (int i = 0; i < numCols; i++) {
+    freeRows(rows, rowCount);
 
-        if (i > 0) {
-            fprintf(file_ptr, ",");
-        }
-
-        if (cols[i] == 1) {
-            fprintf(file_ptr, "User ID");
-        } else if (cols[i] == 2) {
-            fprintf(file_ptr, "First Name");
-        } else if (cols[i] == 3) {
-            fprintf(file_ptr, "Last Name");
-        } else if (cols[i] == 4) {
-            fprintf(file_ptr, "Country");
-        } else if (cols[i] == 5) {
-            fprintf(file_ptr, "Phone");
-        } else if (cols[i] == 6) {
-            fprintf(file_ptr, "Email");
-        } else if (cols[i] == 7) {
-            fprintf(file_ptr, "SIN");
-        } else if (cols[i] == 8) {
-            fprintf(file_ptr, "Password");
-        }
-    }
-
-    fprintf(file_ptr, "\n");
-
-    // Write the sorted rows.
-    for (int i = 0; i < rowCount; i++) {
-        fprintf(file_ptr, "%s\n", rows[i].csvLine);
-    }
-
-    fclose(file_ptr);
-
-    // Release allocated memory.
-    for (int i = 0; i < rowCount; i++) {
-        free(rows[i].sortKey);
-        free(rows[i].csvLine);
-    }
-
-    free(rows);
-
-    printf("CSV file generated successfully: %s\n",
-           fullFileName);
+    printf("\nTable written successfully to %s\n", fullFileName);
 }
