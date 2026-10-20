@@ -13,7 +13,8 @@ int main() {
     int choice;
 
     while (1) {
-        
+        // system("clear"); // use with docker
+
         startPage();
         
         scanf("%d", &choice);
@@ -39,7 +40,7 @@ void startPage() {
 }
 
 void configureTable() {
-    // system("clear"); // ill use it when i get docker installed
+    // system("clear"); // use with docker
 
     printf("\nColumn Options\n");
     printf("--------------\n");
@@ -58,7 +59,6 @@ void configureTable() {
     scanf("%d", &rowCount);
     printf("Enter output file name (no suffix): ");
     scanf("%63s", fileName);
-    // --------------
 
     int cols[8];
     int numCols = 0;
@@ -82,4 +82,11 @@ void configureTable() {
     printf(" Row count: %d\n", rowCount);
     printf(" File name: %s\n", fileName);
     generate(rowCount, fileName, cols, numCols);
+
+    // code from assignment pdf
+    char proceed;
+    printf("\nPress 'c' or 'C' to continue ");
+    do{
+        scanf("%c", &proceed);
+    } while ( (proceed != 'c') && (proceed != 'C'));
 }
