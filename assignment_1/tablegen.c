@@ -8,7 +8,7 @@ void startPage();
 void configureTable();
 
 int main() {
-    srand((unsigned int)time(NULL)); // Seed the random number generator
+    srand((unsigned int)time(NULL)); // seeding the random number generator
 
     int choice;
 
@@ -68,7 +68,7 @@ void configureTable() {
     char *token = strtok(columns, ",");
     while (token != NULL) {
         cols[numCols++] = atoi(token);   // atoi: a(scii) to i(nt) 
-        token = strtok(NULL, ",");       // NULL means "continue where you left off"
+        token = strtok(NULL, ",");
     }
 
     printf("\nSummary of properties:\n");
