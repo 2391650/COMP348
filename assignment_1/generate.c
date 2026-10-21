@@ -204,8 +204,8 @@ static void makeCell(char *cell, size_t cellSize, int column, int row,
     }
 }
 
-// generate each row in memory
-// returns 1 if OK, 0 on error (the caller frees the rows)
+// Generate each row in memory
+// Returns 1 if OK, 0 on error (the caller frees the rows)
 static int buildRows(GeneratedRow *rows, int rowCount,
                      int cols[], int numCols) {
 
@@ -233,7 +233,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
             makeCell(cell, sizeof(cell), cols[col], row,
                      firstNameIndex, lastNameIndex);
 
-            // remember the first selected column's value
+            // Remember the first selected column's value
             if (col == 0) {
                 rows[row - 1].sortKey = malloc(strlen(cell) + 1);
 
@@ -245,7 +245,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
                 strcpy(rows[row - 1].sortKey, cell);
             }
 
-            // add a comma between CSV values
+            // Add a comma between CSV values
             if (col > 0) {
                 rowBuffer[used++] = ',';
                 rowBuffer[used] = '\0';
@@ -263,7 +263,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
             used += cellLength;
         }
 
-        // save the complete row
+        // Save the complete row
         rows[row - 1].csvLine = malloc(strlen(rowBuffer) + 1);
 
         if (rows[row - 1].csvLine == NULL) {
@@ -284,34 +284,34 @@ void generate(int rowCount, char fileName[],
 
     GeneratedRow *rows = NULL;
 
-    // build output filename
+    // Build output filename
     snprintf(fullFileName, sizeof(fullFileName),
              "%s.csv", fileName);
 
-    // load only the files needed by the selected columns
+    // Load only the files needed by the selected columns
     if (!loadFiles(cols, numCols)) {
         return;
     }
 
-    // allocate memory for all generated rows
+    // Allocate memory for all generated rows
     rows = calloc((size_t)rowCount, sizeof(GeneratedRow));
 
-    // generate each row in memory
+    // Generate each row in memory
     if (!buildRows(rows, rowCount, cols, numCols)) {
         freeRows(rows, rowCount);
         return;
     }
 
-    // sort by the first selected column
+    // Sort by the first selected column
     sortRows(rows, rowCount, cols[0]);
 
-    // open the output CSV and write the header and rows
+    // Open the output CSV and write the header and rows
     if (!writeCSV(fullFileName, rows, rowCount, cols, numCols)) {
         freeRows(rows, rowCount);
         return;
     }
 
-    // release allocated memory
+    // Release allocated memory
     freeRows(rows, rowCount);
 
     printf("Table written successfull to %s\n",
