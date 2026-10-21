@@ -203,9 +203,8 @@ static void makeCell(char *cell, size_t cellSize, int column, int row,
     }
 }
 
-
-// Generate each row in memory.
-// Returns 1 if OK, 0 on error (the caller frees the rows).
+// generate each row in memory
+// returns 1 if OK, 0 on error (the caller frees the rows)
 static int buildRows(GeneratedRow *rows, int rowCount,
                      int cols[], int numCols) {
 
@@ -233,7 +232,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
             makeCell(cell, sizeof(cell), cols[col], row,
                      firstNameIndex, lastNameIndex);
 
-            // Remember the first selected column's value.
+            // remember the first selected column's value
             if (col == 0) {
                 rows[row - 1].sortKey = malloc(strlen(cell) + 1);
 
@@ -241,22 +240,17 @@ static int buildRows(GeneratedRow *rows, int rowCount,
                     printf("Could not allocate sorting key.\n");
                     return 0;
                 }
-
+                
                 strcpy(rows[row - 1].sortKey, cell);
             }
 
-            // Add a comma between CSV values.
+            // add a comma between CSV values
             if (col > 0) {
-                if (used + 1 >= sizeof(rowBuffer)) {
-                    printf("Generated row is too long.\n");
-                    return 0;
-                }
-
                 rowBuffer[used++] = ',';
                 rowBuffer[used] = '\0';
             }
 
-            // Add the current cell to the row.
+            // add the current cell to the row
             size_t cellLength = strlen(cell);
 
             if (used + cellLength >= sizeof(rowBuffer)) {
@@ -268,7 +262,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
             used += cellLength;
         }
 
-        // Save the complete row.
+        // save the complete row
         rows[row - 1].csvLine = malloc(strlen(rowBuffer) + 1);
 
         if (rows[row - 1].csvLine == NULL) {
@@ -289,50 +283,34 @@ void generate(int rowCount, char fileName[],
 
     GeneratedRow *rows = NULL;
 
-    // These are global now, so reset them for every new table.
-    fNameCount = 0;
-    lNameCount = 0;
-    countryCount = 0;
-    emailSuffixCount = 0;
-
-    // Check the selected columns.
-    if (!validateInput(rowCount, numCols, cols)) {
-        return;
-    }
-
-    // Build the output filename.
+    // build output filename
     snprintf(fullFileName, sizeof(fullFileName),
              "%s.csv", fileName);
 
-    // Load only the files needed by the selected columns.
+    // load only the files needed by the selected columns
     if (!loadFiles(cols, numCols)) {
         return;
     }
 
-    // Allocate memory for all generated rows.
+    // allocate memory for all generated rows
     rows = calloc((size_t)rowCount, sizeof(GeneratedRow));
 
-    if (rows == NULL) {
-        printf("Could not allocate memory for rows.\n");
-        return;
-    }
-
-    // Generate each row in memory.
+    // generate each row in memory
     if (!buildRows(rows, rowCount, cols, numCols)) {
         freeRows(rows, rowCount);
         return;
     }
 
-    // Sort by the first selected column.
+    // sort by the first selected column
     sortRows(rows, rowCount, cols[0]);
 
-    // Open the output CSV and write the header and rows.
+    // open the output CSV and write the header and rows
     if (!writeCSV(fullFileName, rows, rowCount, cols, numCols)) {
         freeRows(rows, rowCount);
         return;
     }
 
-    // Release allocated memory.
+    // release allocated memory
     freeRows(rows, rowCount);
 
     printf("Table written successfull to %s\n",

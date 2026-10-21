@@ -1,7 +1,7 @@
 #ifndef IO_H
 #define IO_H
 
-#include "sort.h"   /* for GeneratedRow */
+#include "sort.h"   // for GeneratedRow
 
 int loadStrings(const char *fileName,
                 char strings[][64],
