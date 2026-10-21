@@ -54,7 +54,7 @@ static int countryCount = 0;
 static int emailSuffixCount = 0;
 
 
-// Release allocated memory (each row's strings first, then the array).
+// Release allocated memory
 static void freeRows(GeneratedRow *rows, int rowCount) {
     for (int i = 0; i < rowCount; i++) {
         free(rows[i].sortKey);
@@ -65,7 +65,7 @@ static void freeRows(GeneratedRow *rows, int rowCount) {
 }
 
 
-// Check the selected columns. Returns 1 if OK, 0 if not.
+// Check the selected columns. Returns 1 if OK, 0 if not
 static int validateInput(int rowCount, int numCols, int cols[]) {
     if (rowCount < 1 || numCols < 1) {
         printf("Invalid row count or column count.\n");
@@ -141,6 +141,7 @@ static void makeCell(char *cell, size_t cellSize, int column, int row,
                      int firstNameIndex, int lastNameIndex) {
 
     if (column == 1) {
+        // User ID is the row number
         snprintf(cell, cellSize, "%d", row);
 
     } else if (column == 2) {
