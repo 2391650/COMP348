@@ -18,7 +18,7 @@
 #define MAX_EMAIL_SUFFIXES  100
 
 // Buffer sizes 
-#define STRING_SIZE         64    // one line of an input file (must match io.c)
+#define STRING_SIZE         64    // one line of an input file
 #define CELL_SIZE           256   // one generated value
 #define ROW_SIZE            2048  // one complete CSV line
 #define FULL_FILE_NAME_SIZE 68    // 63-char name + ".csv" + '\0'
@@ -65,7 +65,7 @@ static void freeRows(GeneratedRow *rows, int rowCount) {
 }
 
 
-// Check the selected columns. Returns 1 if OK, 0 if not
+// Checks the selected columns
 static int validateInput(int rowCount, int numCols, int cols[]) {
     if (rowCount < 1 || numCols < 1) {
         printf("Invalid row count or column count.\n");
@@ -84,8 +84,7 @@ static int validateInput(int rowCount, int numCols, int cols[]) {
 }
 
 
-// Load only the files needed by the selected columns.
-// Returns 1 if OK, 0 if a file could not be loaded.
+// Loads only the files needed by the selected columns
 static int loadFiles(int cols[], int numCols) {
     for (int i = 0; i < numCols; i++) {
 
@@ -134,7 +133,7 @@ static int loadFiles(int cols[], int numCols) {
 }
 
 
-// Generate the value of one column for one row and store it in cell.
+// Generates the value of one column for one row and stores it in cell.
 // (cellSize is passed in because sizeof(cell) would give the size of a
 // pointer here, not the size of the array.)
 static void makeCell(char *cell, size_t cellSize, int column, int row,
@@ -204,8 +203,7 @@ static void makeCell(char *cell, size_t cellSize, int column, int row,
     }
 }
 
-// Generate each row in memory
-// Returns 1 if OK, 0 on error (the caller frees the rows)
+// Generates each row in memory (the caller frees the rows)
 static int buildRows(GeneratedRow *rows, int rowCount,
                      int cols[], int numCols) {
 
@@ -251,7 +249,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
                 rowBuffer[used] = '\0';
             }
 
-            // add the current cell to the row
+            // Add the current cell to the row
             size_t cellLength = strlen(cell);
 
             if (used + cellLength >= sizeof(rowBuffer)) {

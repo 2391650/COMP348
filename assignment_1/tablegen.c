@@ -8,7 +8,7 @@ void startPage();
 void configureTable();
 
 int main() {
-    srand((unsigned int)time(NULL)); // seeding the random number generator
+    srand((unsigned int)time(NULL)); // Seeding the random number generator
 
     int choice;
 
@@ -54,7 +54,7 @@ void configureTable() {
     int rowCount;
     char fileName[64];
     
-    scanf("%15s", columns); // column string input
+    scanf("%15s", columns);
     printf("Enter row count (1 < n < 1M): ");
     scanf("%d", &rowCount);
     printf("Enter output file name (no suffix): ");
@@ -63,10 +63,10 @@ void configureTable() {
     int cols[8];
     int numCols = 0;
 
-    // from column string to array of integers
+    // From column string to array of integers
     char *token = strtok(columns, ",");
     while (token != NULL) {
-        cols[numCols++] = atoi(token);   // atoi: a(scii) to i(nt) 
+        cols[numCols++] = atoi(token);
         token = strtok(NULL, ",");
     }
 
@@ -83,7 +83,6 @@ void configureTable() {
     printf(" File name: %s\n", fileName);
     generate(rowCount, fileName, cols, numCols);
 
-    // code from assignment pdf
     char proceed;
     printf("\nPress 'c' or 'C' to continue ");
     do{
