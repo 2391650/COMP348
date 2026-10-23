@@ -31,7 +31,7 @@
 #define MIN_PASSWORD_LENGTH 6
 #define MAX_PASSWORD_LENGTH 16
 
-// Data shared by the helper functions in this file
+// Data shared by the helper functions
 static char firstNames[MAX_FIRST_NAMES][STRING_SIZE];
 static char lastNames[MAX_LAST_NAMES][STRING_SIZE];
 static char countries[MAX_COUNTRIES][STRING_SIZE];
@@ -65,9 +65,8 @@ static void freeRows(GeneratedRow *rows, int rowCount) {
 }
 
 
-// Checks the selected columns
 static int validateInput(int rowCount, int numCols, int cols[]) {
-    if (rowCount < 1 || numCols < 1) {
+    if (rowCount <= 1 || rowCount >= 1000000 || numCols < 1) {
         printf("Invalid row count or column count.\n");
         return 0;
     }
@@ -84,7 +83,6 @@ static int validateInput(int rowCount, int numCols, int cols[]) {
 }
 
 
-// Loads only the files needed by the selected columns
 static int loadFiles(int cols[], int numCols) {
     for (int i = 0; i < numCols; i++) {
 
@@ -133,9 +131,6 @@ static int loadFiles(int cols[], int numCols) {
 }
 
 
-// Generates the value of one column for one row and stores it in cell.
-// (cellSize is passed in because sizeof(cell) would give the size of a
-// pointer here, not the size of the array.)
 static void makeCell(char *cell, size_t cellSize, int column, int row,
                      int firstNameIndex, int lastNameIndex) {
 
@@ -203,7 +198,7 @@ static void makeCell(char *cell, size_t cellSize, int column, int row,
     }
 }
 
-// Generates each row in memory (the caller frees the rows)
+// Generates each row in memory
 static int buildRows(GeneratedRow *rows, int rowCount,
                      int cols[], int numCols) {
 
@@ -231,7 +226,7 @@ static int buildRows(GeneratedRow *rows, int rowCount,
             makeCell(cell, sizeof(cell), cols[col], row,
                      firstNameIndex, lastNameIndex);
 
-            // Remember the first selected column's value
+            // Allocate memory and save the first column's value for sorting
             if (col == 0) {
                 rows[row - 1].sortKey = malloc(strlen(cell) + 1);
 
@@ -243,7 +238,6 @@ static int buildRows(GeneratedRow *rows, int rowCount,
                 strcpy(rows[row - 1].sortKey, cell);
             }
 
-            // Add a comma between CSV values
             if (col > 0) {
                 rowBuffer[used++] = ',';
                 rowBuffer[used] = '\0';
@@ -282,11 +276,13 @@ void generate(int rowCount, char fileName[],
 
     GeneratedRow *rows = NULL;
 
-    // Build output filename
+    if (!validateInput(rowCount, numCols, cols)) {
+        return;
+    }
+
     snprintf(fullFileName, sizeof(fullFileName),
              "%s.csv", fileName);
 
-    // Load only the files needed by the selected columns
     if (!loadFiles(cols, numCols)) {
         return;
     }
@@ -294,24 +290,26 @@ void generate(int rowCount, char fileName[],
     // Allocate memory for all generated rows
     rows = calloc((size_t)rowCount, sizeof(GeneratedRow));
 
+    if (rows == NULL) {
+        printf("Could not allocate memory for rows.\n");
+        return;
+    }
+
     // Generate each row in memory
     if (!buildRows(rows, rowCount, cols, numCols)) {
         freeRows(rows, rowCount);
         return;
     }
 
-    // Sort by the first selected column
     sortRows(rows, rowCount, cols[0]);
 
-    // Open the output CSV and write the header and rows
     if (!writeCSV(fullFileName, rows, rowCount, cols, numCols)) {
-        freeRows(rows, rowCount);
+        freeRows(rows, rowCount); // In case of error
         return;
     }
 
-    // Release allocated memory
     freeRows(rows, rowCount);
 
-    printf("Table written successfull to %s\n",
+    printf("Table written successfully to %s\n",
            fullFileName);
 }

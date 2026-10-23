@@ -33,7 +33,6 @@ int loadStrings(const char *fileName,
 }
 
 
-// Write column headers in the selected order
 static void writeHeader(FILE *file_ptr, int cols[], int numCols) {
     for (int i = 0; i < numCols; i++) {
 
@@ -63,20 +62,19 @@ static void writeHeader(FILE *file_ptr, int cols[], int numCols) {
     fprintf(file_ptr, "\n");
 }
 
-// Open the output CSV, write the header and the sorted rows
 int writeCSV(const char *fullFileName, GeneratedRow *rows,
              int rowCount, int cols[], int numCols) {
 
     FILE *file_ptr = fopen(fullFileName, "w");
 
     if (file_ptr == NULL) {
-        printf("Error opening output file!\n");
+        printf("Error opening output file\n");
         return 0;
     }
-    // Write the header
+
     writeHeader(file_ptr, cols, numCols);
 
-    // Writes the sorted rows
+
     for (int i = 0; i < rowCount; i++) {
         fprintf(file_ptr, "%s\n", rows[i].csvLine);
     }

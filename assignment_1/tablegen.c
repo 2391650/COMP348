@@ -6,6 +6,7 @@
 
 void startPage();
 void configureTable();
+void waitForContinue();
 
 int main() {
     srand((unsigned int)time(NULL)); // Seeding the random number generator
@@ -26,6 +27,7 @@ int main() {
             break;
         } else {
             printf("Invalid selection. Please try again.\n");
+            waitForContinue();
         }
     }
     return 0;
@@ -50,11 +52,11 @@ void configureTable() {
     printf("4. Country          8. Password\n");
     printf("\nEnter column list (comma-separated, no spaces): ");
     
-    char columns[16]; 
+    char columns[64];
     int rowCount;
     char fileName[64];
     
-    scanf("%15s", columns);
+    scanf("%63s", columns);
     printf("Enter row count (1 < n < 1M): ");
     scanf("%d", &rowCount);
     printf("Enter output file name (no suffix): ");
@@ -63,9 +65,17 @@ void configureTable() {
     int cols[8];
     int numCols = 0;
 
-    // From column string to array of integers
     char *token = strtok(columns, ",");
+
     while (token != NULL) {
+
+        if (numCols >= 8) {
+            printf("Error: You cannot select more than 8 columns.\n");
+            waitForContinue();
+
+            return;
+        }
+
         cols[numCols++] = atoi(token);
         token = strtok(NULL, ",");
     }
@@ -83,9 +93,15 @@ void configureTable() {
     printf(" File name: %s\n", fileName);
     generate(rowCount, fileName, cols, numCols);
 
+    waitForContinue();
+}
+
+void waitForContinue() {
     char proceed;
+
     printf("\nPress 'c' or 'C' to continue ");
-    do{
-        scanf("%c", &proceed);
-    } while ( (proceed != 'c') && (proceed != 'C'));
+
+    do {
+        scanf(" %c", &proceed);
+    } while (proceed != 'c' && proceed != 'C');
 }
