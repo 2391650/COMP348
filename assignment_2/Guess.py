@@ -26,7 +26,12 @@ class Guess:
         try:
             while True:
                 self.display_menu()
-                option = input("Enter option: ").strip().lower()
+                option = input("Enter Option: ").strip().lower()
+
+                while option not in ("g", "t", "l", "q"):
+                    option = input(
+                        "Invalid option. Please re-enter: "
+                    ).strip().lower()
 
                 if option == "q":
                     break
@@ -36,10 +41,8 @@ class Guess:
                     self.tell_me()
                 elif option == "l":
                     self.guess_letter()
-                else:
-                    print("Invalid option. Enter g, t, l, or q.")
 
-                input("Press any key to continue (then Enter): ")
+                input("Press any key to continue... ")
 
         except (EOFError, KeyboardInterrupt):
             print()
@@ -62,12 +65,19 @@ class Guess:
         print()
 
         if self.mode == "test":
-            print("Current word:", self.current_game.word)
+            print("Current Word:", self.current_game.word)
 
-        print("Current guess:", self.current_guess())
+        print("Current Guess:", self.current_guess())
         print("Letters guessed:", " ".join(self.current_game.letters_guessed))
         print()
-        print("g - guess, t - tell me, l - letter, q - quit")
+        print("g = guess, t = tell me, l for a letter, and q to quit")
+        print()
+
+    def display_feedback(self, message):
+        print()
+        print("@@")
+        print("@@ FEEDBACK:", message)
+        print("@@")
         print()
 
     def current_guess(self):
@@ -105,34 +115,34 @@ class Guess:
 
         game.letter_requests += 1
 
-        if letter in game.letters_guessed:
-            print("You already guessed that letter.")
-        else:
+        if letter not in game.letters_guessed:
             game.letters_guessed.append(letter)
 
         matches = game.word.count(letter)
 
         if matches == 0:
             game.missed_letters += 1
-            print("That letter is not in the word.")
+            self.display_feedback("Not a single match, genius")
         else:
-            print("Found", matches, "matching letter(s).")
-
-        if "-" not in self.current_guess():
-            print("All letters are visible. Use g to guess the word.")
+            self.display_feedback(
+                "Woo hoo, you found " + str(matches) + " letters"
+            )
 
     def guess_word(self):
-        answer = self.read_letters("Enter your guess: ", 4)
+        answer = self.read_letters("Make your guess: ", 4)
 
         if answer == self.current_game.word:
-            print("Correct! You guessed the word.")
+            self.display_feedback("You're right, Einstein!")
             self.finish_game(True)
         else:
             self.current_game.bad_guesses += 1
-            print("That is not the word. Try again.")
+            self.display_feedback("Try again, Loser!")
 
     def tell_me(self):
-        print("The word was:", self.current_game.word)
+        self.display_feedback(
+            "You really should have guessed this...'"
+            + self.current_game.word + "'"
+        )
         self.finish_game(False)
 
     def calculate_score(self, success):
@@ -156,7 +166,6 @@ class Guess:
 
         penalty = game.bad_guesses * 0.10
 
-        # A win cannot give a negative score
         if penalty > 1:
             penalty = 1
 
