@@ -39,7 +39,7 @@ class Guess:
                 else:
                     print("Invalid option. Enter g, t, l, or q.")
 
-                input("Press Enter to continue: ")
+                input("Press any key to continue (then Enter): ")
 
         except (EOFError, KeyboardInterrupt):
             print()
@@ -56,7 +56,9 @@ class Guess:
 
     def display_menu(self):
         self.clear_screen()
-        print("The great guessing game")
+        print("++")
+        print("++ The great guessing game")
+        print("++")
         print()
 
         if self.mode == "test":
@@ -177,7 +179,9 @@ class Guess:
 
     def display_report(self):
         self.clear_screen()
-        print("Game Report")
+        print("++")
+        print("++ Game Report")
+        print("++")
         print()
         print(f"{'Game':<6}{'Word':<8}{'Status':<12}"
               f"{'Bad Guesses':>13}{'Missed Letters':>16}{'Score':>10}")
